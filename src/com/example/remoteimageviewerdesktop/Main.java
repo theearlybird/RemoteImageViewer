@@ -9,9 +9,11 @@ import java.awt.dnd.DropTargetDragEvent;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.dnd.DropTargetEvent;
 import java.awt.dnd.DropTargetListener;
+import java.io.File;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import javax.imageio.ImageIO;
@@ -48,14 +50,28 @@ public class Main extends JFrame implements DropTargetListener {
 
 	public void dragEnter(DropTargetDragEvent dtde) {
 		try {
-			StringTokenizer st = new StringTokenizer((String) dtde.getTransferable().getTransferData(new DataFlavor("text/uri-list;class=java.lang.String")), "\r\n");
-			while (st.hasMoreTokens()) {
-				String token = st.nextToken().trim();
-				if (!token.startsWith("#") && !token.isEmpty()) {
-					URL file = new URI(token).toURL();
-					if (isImage(file)) {
-						imgFile = file;
-						break;
+			for (DataFlavor df : dtde.getTransferable().getTransferDataFlavors()) {
+				if (df.equals(new DataFlavor("text/uri-list;class=java.lang.String"))) {
+					StringTokenizer st = new StringTokenizer((String) dtde.getTransferable().getTransferData(new DataFlavor("text/uri-list;class=java.lang.String")), "\r\n");
+					while (st.hasMoreTokens()) {
+						String token = st.nextToken().trim();
+						if (!token.startsWith("#") && !token.isEmpty()) {
+							URL file = new URI(token).toURL();
+							if (isImage(file)) {
+								imgFile = file;
+								break;
+							}
+						}
+					}
+				} else if (df.equals(DataFlavor.javaFileListFlavor)) {
+					@SuppressWarnings("unchecked")
+					List<File> files = (List<File>) dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+					for (File f : files) {
+						URL file = f.toURI().toURL();
+						if (isImage(file)) {
+							imgFile = file;
+							break;
+						}
 					}
 				}
 			}
@@ -94,7 +110,7 @@ public class Main extends JFrame implements DropTargetListener {
 		String n = f.toString().toLowerCase();
 		return n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".gif") || n.endsWith(".bmp");
 	}
-	
+
 	private void handle(Exception ex) {
 		JOptionPane.showMessageDialog(this, ex.toString(), "Error", JOptionPane.ERROR_MESSAGE);
 	}
